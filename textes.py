@@ -4,10 +4,16 @@
 Le francais est la langue source. Anglais et espagnol sont dans i18n/.
 """
 
+import html
 import os
-import xml.etree.ElementTree as ET
+import re
 
 from qgis.PyQt.QtCore import QLocale, QSettings
+
+_BLOC_TRADUCTION = re.compile(
+    r"<source>(.*?)</source>\s*<translation([^>]*)>(.*?)</translation>",
+    re.DOTALL,
+)
 
 _LANGUES = ("fr", "en", "es")
 _langueForcee = ""
@@ -77,18 +83,15 @@ def _lireTs(chemin: str) -> dict:
     if not os.path.isfile(chemin):
         return {}
     try:
-        racine = ET.parse(chemin).getroot()
-    except Exception:
+        with open(chemin, encoding="utf-8") as fichier:
+            contenu = fichier.read()
+    except OSError:
         return {}
     table = {}
-    for message in racine.iter("message"):
-        source = message.find("source")
-        traduction = message.find("translation")
-        if source is None or traduction is None or source.text is None:
+    for source, attributs, traduction in _BLOC_TRADUCTION.findall(contenu):
+        if "unfinished" in attributs:
             continue
-        if traduction.get("type") == "unfinished":
-            continue
-        texte = traduction.text or ""
+        texte = html.unescape(traduction).strip()
         if texte:
-            table[source.text] = texte
+            table[html.unescape(source).strip()] = texte
     return table

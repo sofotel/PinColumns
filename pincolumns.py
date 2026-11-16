@@ -29,6 +29,7 @@ from .figer_colonnes import (
     lirePreference,
     reparerLargeursNulles,
     tracerErreur,
+    tracerRepli,
 )
 from .textes import traduire
 
@@ -493,8 +494,8 @@ class SurveillantTables(QObject):
             return
         try:
             etat.figement._delier()
-        except Exception:
-            pass
+        except Exception as erreur:
+            tracerRepli("Oubli des signaux", erreur)
         etat.figement.actif = False
         etat.figement.vueFigee = None
         etat.figement = None

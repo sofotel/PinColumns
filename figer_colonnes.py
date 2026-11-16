@@ -52,6 +52,15 @@ def tracerErreur(contexte: str, erreur: BaseException) -> None:
     )
 
 
+def tracerRepli(contexte: str, erreur: BaseException) -> None:
+    """Note un repli de lecture dans le journal, sans interrompre le figement."""
+    QgsMessageLog.logMessage(
+        f"{contexte} : {erreur}",
+        _JOURNAL,
+        Qgis.Warning,
+    )
+
+
 def repartirColonnes(indicesVisibles: list, indiceCible: int, mode: str) -> Optional[tuple]:
     """Separe les colonnes visibles en colonnes figees et defilantes.
 
@@ -129,8 +138,8 @@ def _modeleFiltre(vue):
         filtre = sip.cast(modele, QgsAttributeTableFilterModel)
         if filtre is not None:
             return filtre
-    except Exception:
-        pass
+    except Exception as erreur:
+        tracerRepli("Lecture du modele filtre", erreur)
     return modele
 
 
@@ -143,8 +152,8 @@ def coucheDeLaVue(vue):
         couche = filtre.layer()
         if couche is not None:
             return couche
-    except Exception:
-        pass
+    except Exception as erreur:
+        tracerRepli("Lecture de la couche", erreur)
     maitre = _modeleMaitre(vue)
     if maitre is None or maitre is filtre:
         return None
@@ -162,14 +171,14 @@ def _modeleMaitre(vue):
         maitre = filtre.masterModel()
         if maitre is not None:
             return maitre
-    except Exception:
-        pass
+    except Exception as erreur:
+        tracerRepli("Lecture du modele maitre", erreur)
     try:
         maitre = sip.cast(filtre, QgsAttributeTableModel)
         if maitre is not None:
             return maitre
-    except Exception:
-        pass
+    except Exception as erreur:
+        tracerRepli("Lecture du modele source", erreur)
     return filtre
 
 
@@ -191,8 +200,8 @@ def _colonneVue(vue, indiceMaitre: int) -> int:
                 proxy = modele.mapFromSource(index)
                 if proxy.isValid():
                     return int(proxy.column())
-        except Exception:
-            pass
+        except Exception as erreur:
+            tracerRepli("Correspondance de colonne", erreur)
     return int(indiceMaitre)
 
 
@@ -339,8 +348,8 @@ def reparerLargeursNulles(vue) -> None:
             taille = int(entete.defaultSectionSize())
             if taille >= 24:
                 defaut = taille
-        except (TypeError, ValueError):
-            pass
+        except (TypeError, ValueError) as erreur:
+            tracerRepli("Lecture de la largeur par defaut", erreur)
     repare = False
     for colonne in colonnes:
         try:
@@ -352,7 +361,8 @@ def reparerLargeursNulles(vue) -> None:
             if indiceChamp < 0:
                 continue
             logique = _colonneVue(vue, int(maitre.fieldCol(indiceChamp)))
-        except Exception:
+        except Exception as erreur:
+            tracerRepli("Lecture d'une colonne", erreur)
             continue
         if logique < 0 or estSupprime(vue):
             continue
@@ -706,8 +716,8 @@ class FigementColonnes:
         for signal, slot in self.liens:
             try:
                 signal.disconnect(slot)
-            except Exception:
-                pass
+            except Exception as erreur:
+                tracerRepli("Deconnexion d'un signal", erreur)
         self.liens = []
 
     def _modifierVueSansMemoire(self, action) -> None:

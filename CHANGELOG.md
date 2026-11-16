@@ -1,5 +1,9 @@
 # Changelog - PinColumns
 
+## 0.3 - 2026-11-17
+
+Les lectures qui échouent sont écrites dans le journal QGIS. Elles ne sont plus ignorées en silence.
+
 ## 0.2 - 2026-11-16
 
 Bouton à flèche dans la barre de la table attributaire. Trois modes : figer la colonne et celles d'avant, figer seulement cette colonne, figer la colonne et celles d'après.

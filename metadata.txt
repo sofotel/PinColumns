@@ -5,14 +5,18 @@ name=PinColumns
 qgisMinimumVersion=3.16
 icon=icon.png
 description=Fige des colonnes dans les tables attributaires
-version=0.2
+version=0.3
 author=sofotel
 email=contact@sofotel.fr
 repository=https://github.com/sofotel/PinColumns
+tracker=https://github.com/sofotel/PinColumns/issues
+homepage=https://github.com/sofotel/PinColumns
 
 about=Ajoute dans la table attributaire un bouton pour garder des colonnes visibles pendant le defilement horizontal. Le choix est memorise sur la couche dans le projet.
 
-changelog=0.2 - 2026-11-16
+changelog=0.3 - 2026-11-17
+    Les lectures ratees sont notees dans le journal au lieu d'etre ignorees.
+    0.2 - 2026-11-16
     Bouton a fleche, trois modes, et memoire du figement sur la couche.
     Boutons et infobulles en francais, anglais et espagnol. Infobulle du bouton : Figer les colonnes.
 
