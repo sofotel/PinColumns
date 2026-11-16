@@ -8,6 +8,7 @@ description=Fige des colonnes dans les tables attributaires
 version=0.2
 author=sofotel
 email=contact@sofotel.fr
+repository=https://github.com/sofotel/PinColumns
 
 about=Ajoute dans la table attributaire un bouton pour garder des colonnes visibles pendant le defilement horizontal. Le choix est memorise sur la couche dans le projet.
 
