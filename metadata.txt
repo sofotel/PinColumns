@@ -1,0 +1,26 @@
+# Metadonnees du plugin QGIS PinColumns
+
+[general]
+name=PinColumns
+qgisMinimumVersion=3.16
+icon=icon.png
+description=Fige des colonnes dans les tables attributaires
+version=0.2
+author=sofotel
+email=contact@sofotel.fr
+
+about=Ajoute dans la table attributaire un bouton pour garder des colonnes visibles pendant le defilement horizontal. Le choix est memorise sur la couche dans le projet.
+
+changelog=0.2 - 2026-11-16
+    Bouton a fleche, trois modes, et memoire du figement sur la couche. Fermer la table conserve le choix. Liberer les colonnes l'efface.
+
+hasProcessingProvider=no
+
+tags=python, attributs, table, colonnes
+
+category=Vector
+experimental=True
+
+deprecated=False
+
+server=False

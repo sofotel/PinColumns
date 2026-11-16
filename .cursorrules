@@ -1,0 +1,33 @@
+# Instructions IA - Plugin QGIS PinColumns
+
+## Priorites
+1. Reutiliser le code deja present dans ce plugin, ne pas en reinventer
+2. Nommage francais sans accents
+3. Gestion des erreurs
+4. Validation des entrees
+
+## Langue
+- Commentaires : francais uniquement
+- Noms : francais sans accents (colonne, couche, dialogue)
+
+## Nommage
+- Fonctions et variables : camelCase
+- Classes : PascalCase
+- Constantes : UPPER_SNAKE_CASE
+- Widgets Qt Designer : snake_case
+- Noms explicites
+
+## Style
+- Indentation : 4 espaces
+- Guillemets : "..."
+- Type hints sur les fonctions publiques
+
+## Qualite
+- Try-catch et trace de l'erreur avant tout traitement risqué
+- Valider les entrees avant le traitement
+- Fonctions courtes, retour tot, peu de parametres
+
+## Interdit
+- Commentaires en anglais
+- Accents dans les noms
+- Ne pas changer les cles de projet pincolumns/mode et pincolumns/champ sans demande

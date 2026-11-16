@@ -1,0 +1,15 @@
+# Cache Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Secrets et environnements locaux
+.env
+.env.*
+*.pem
+*.key
+.venv/
+venv/
+
+# Base de styles QGIS, hors plugin
+symbology-style.db
