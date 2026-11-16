@@ -8,6 +8,8 @@ Le figement est enregistré sur la couche (`pincolumns/mode`, `pincolumns/champ`
 
 Masquer une colonne figée n'écrit plus une largeur nulle dans la configuration de la table. Une largeur déjà nulle est réparée à la réouverture.
 
+Boutons, menus et infobulles suivent la langue de QGIS : français, anglais ou espagnol. L'infobulle du bouton principal est « Figer les colonnes ».
+
 ## 0.1 - 2026-11-15
 
 Structure du plugin préparée. Remplacée par le comportement du bouton.

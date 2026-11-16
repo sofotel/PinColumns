@@ -12,7 +12,8 @@ email=contact@sofotel.fr
 about=Ajoute dans la table attributaire un bouton pour garder des colonnes visibles pendant le defilement horizontal. Le choix est memorise sur la couche dans le projet.
 
 changelog=0.2 - 2026-11-16
-    Bouton a fleche, trois modes, et memoire du figement sur la couche. Fermer la table conserve le choix. Liberer les colonnes l'efface.
+    Bouton a fleche, trois modes, et memoire du figement sur la couche.
+    Boutons et infobulles en francais, anglais et espagnol. Infobulle du bouton : Figer les colonnes.
 
 hasProcessingProvider=no
 

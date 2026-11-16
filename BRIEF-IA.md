@@ -8,6 +8,10 @@ Figer des colonnes dans la table attributaire de QGIS.
 
 Le bouton est dans la barre de la table, pas dans une fenêtre du plugin. Un clic exécute le mode actif. La flèche ouvre les trois modes et « Libérer les colonnes ».
 
+L'infobulle du bouton principal reste « Figer les colonnes ». Ne pas y remettre le texte long du mode. Les infobulles longues sont sur les entrées du menu.
+
+Les textes visibles passent par `traduire`. Le français est la source. Anglais et espagnol sont dans `i18n/PinColumns_en.ts` et `i18n/PinColumns_es.ts`. La langue vient de QGIS.
+
 ## Modes
 
 - `avant` : la colonne choisie et celles d'avant, à gauche. Mode par défaut.

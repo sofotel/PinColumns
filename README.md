@@ -17,6 +17,8 @@ Modes :
 
 La colonne d'actions n'est pas figée. Les numéros de ligne restent ceux de la table QGIS. Il faut laisser au moins une colonne qui défile.
 
+L'infobulle du bouton est « Figer les colonnes ». Le détail de chaque mode est dans le menu. Boutons et infobulles suivent la langue de QGIS : français, anglais ou espagnol.
+
 ## Mémoire
 
 Le choix est enregistré sur la couche, dans le projet : le mode et le nom du champ repère. Fermer la table puis la rouvrir repose le même figement. **Libérer les colonnes** retire ce choix et décoche le menu.

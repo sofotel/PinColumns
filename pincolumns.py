@@ -30,20 +30,31 @@ from .figer_colonnes import (
     reparerLargeursNulles,
     tracerErreur,
 )
+from .textes import traduire
 
 _ESSAIS_MAX = 8
 
-_LIBELLES = {
-    MODE_AVANT: "Figer cette colonne et celles d'avant",
-    MODE_SEULE: "Figer seulement cette colonne",
-    MODE_APRES: "Figer les colonnes d'après",
-}
 
-_INFOS = {
-    MODE_AVANT: "Cette colonne et celles d'avant restent à gauche. Les suivantes défilent.",
-    MODE_SEULE: "Seule cette colonne reste à gauche. Les colonnes d'avant et d'après défilent.",
-    MODE_APRES: "Cette colonne et celles d'après restent à droite. Les précédentes défilent.",
-}
+def _libelles() -> dict:
+    return {
+        MODE_AVANT: traduire("Figer cette colonne et celles d'avant"),
+        MODE_SEULE: traduire("Figer seulement cette colonne"),
+        MODE_APRES: traduire("Figer les colonnes d'après"),
+    }
+
+
+def _infos() -> dict:
+    return {
+        MODE_AVANT: traduire(
+            "Cette colonne et celles d'avant restent à gauche. Les suivantes défilent."
+        ),
+        MODE_SEULE: traduire(
+            "Seule cette colonne reste à gauche. Les colonnes d'avant et d'après défilent."
+        ),
+        MODE_APRES: traduire(
+            "Cette colonne et celles d'après restent à droite. Les précédentes défilent."
+        ),
+    }
 
 
 def _nomClasse(obj) -> str:
@@ -227,10 +238,12 @@ class SurveillantTables(QObject):
         menu = QMenu(bouton)
         groupe = QActionGroup(menu)
         groupe.setExclusive(True)
+        libelles = _libelles()
+        infos = _infos()
         for mode in (MODE_AVANT, MODE_SEULE, MODE_APRES):
-            action = QAction(_LIBELLES[mode], menu)
+            action = QAction(libelles[mode], menu)
             action.setCheckable(True)
-            action.setToolTip(_INFOS[mode])
+            action.setToolTip(infos[mode])
             action.setData(mode)
             if mode == MODE_AVANT:
                 action.setChecked(True)
@@ -241,16 +254,18 @@ class SurveillantTables(QObject):
             )
             etat.actionsModes[mode] = action
         menu.addSeparator()
-        actionLiberer = QAction("Libérer les colonnes", menu)
+        actionLiberer = QAction(traduire("Libérer les colonnes"), menu)
         actionLiberer.setEnabled(False)
         actionLiberer.triggered.connect(lambda _coche=False, d=dialogue: self._liberer(d))
         menu.addAction(actionLiberer)
-        actionDefaut = QAction(self.icone, _LIBELLES[MODE_AVANT], bouton)
-        actionDefaut.setToolTip(_INFOS[MODE_AVANT])
+        court = traduire("Figer les colonnes")
+        actionDefaut = QAction(self.icone, court, bouton)
+        actionDefaut.setToolTip(court)
         actionDefaut.triggered.connect(lambda _coche=False, d=dialogue: self._executer(d))
         bouton.setDefaultAction(actionDefaut)
         bouton.setMenu(menu)
         bouton.setPopupMode(QToolButton.MenuButtonPopup)
+        bouton.setToolTip(court)
         etat.bouton = bouton
         etat.actionDefaut = actionDefaut
         etat.actionLiberer = actionLiberer
@@ -276,19 +291,19 @@ class SurveillantTables(QObject):
         try:
             vue = self._trouverVue(dialogue)
             if vue is None:
-                self._prevenir("La table attributaire est introuvable.", Qgis.Warning)
+                self._prevenir(traduire("La table attributaire est introuvable."), Qgis.Warning)
                 return
             indice = vue.property("pincolumnsColonne")
             if indice is None:
                 self._prevenir(
-                    "Cliquez sur l'en-tête de la colonne à figer.",
+                    traduire("Cliquez sur l'en-tête de la colonne à figer."),
                     Qgis.Warning,
                 )
                 return
             mode = dialogue.property("pincolumnsMode") or MODE_AVANT
             etat = self.etats.get(id(dialogue))
             if etat is None or etat.figement is None:
-                self._prevenir("Le bouton n'est plus lié à cette table.", Qgis.Warning)
+                self._prevenir(traduire("Le bouton n'est plus lié à cette table."), Qgis.Warning)
                 return
             message = etat.figement.appliquer(indice, str(mode))
             if message:
@@ -298,7 +313,7 @@ class SurveillantTables(QObject):
         except Exception as erreur:
             tracerErreur("Figement des colonnes", erreur)
             self._prevenir(
-                "Le figement a échoué. Le détail est dans le journal PinColumns.",
+                traduire("Le figement a échoué. Le détail est dans le journal PinColumns."),
                 Qgis.Critical,
             )
 
@@ -316,7 +331,7 @@ class SurveillantTables(QObject):
         except Exception as erreur:
             tracerErreur("Liberation des colonnes", erreur)
             self._prevenir(
-                "Les colonnes n'ont pas pu être libérées.",
+                traduire("Les colonnes n'ont pas pu être libérées."),
                 Qgis.Critical,
             )
 
@@ -401,12 +416,14 @@ class SurveillantTables(QObject):
             self.enRestauration = False
 
     def _mettreAJourInfo(self, etat, mode: str) -> None:
-        if estSupprime(etat.actionDefaut):
+        """L'infobulle du bouton reste courte, quel que soit le mode."""
+        if mode not in MODES or estSupprime(etat.actionDefaut):
             return
-        etat.actionDefaut.setText(_LIBELLES.get(mode, _LIBELLES[MODE_AVANT]))
-        etat.actionDefaut.setToolTip(_INFOS.get(mode, _INFOS[MODE_AVANT]))
+        court = traduire("Figer les colonnes")
+        etat.actionDefaut.setText(court)
+        etat.actionDefaut.setToolTip(court)
         if not estSupprime(etat.bouton):
-            etat.bouton.setToolTip(_INFOS.get(mode, _INFOS[MODE_AVANT]))
+            etat.bouton.setToolTip(court)
 
     def _marquerActif(self, etat, actif: bool) -> None:
         if estSupprime(etat.actionLiberer):

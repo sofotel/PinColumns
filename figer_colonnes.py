@@ -26,6 +26,11 @@ from qgis.gui import (
     QgsFeatureSelectionModel,
 )
 
+try:
+    from .textes import traduire
+except ImportError:
+    from textes import traduire
+
 MODE_AVANT = "avant"
 MODE_SEULE = "seule"
 MODE_APRES = "apres"
@@ -455,13 +460,13 @@ class FigementColonnes:
         if self.enCours:
             return ""
         if estSupprime(self.vue) or self.vue.model() is None:
-            return "La table n'est plus disponible."
+            return traduire("La table n'est plus disponible.")
         if mode not in MODES:
-            return "Mode de figement inconnu."
+            return traduire("Mode de figement inconnu.")
         try:
             indiceCible = int(indiceCible)
         except (TypeError, ValueError):
-            return "Choisissez une colonne a figer."
+            return traduire("Choisissez une colonne à figer.")
         self.enCours = True
         try:
             return self._appliquer(indiceCible, mode)
@@ -473,14 +478,14 @@ class FigementColonnes:
         reparerLargeursNulles(self.vue)
         indices = listerColonnesVisibles(self.vue)
         if indiceCible not in indices:
-            return "Cliquez sur l'en-tête d'une colonne de champ."
+            return traduire("Cliquez sur l'en-tête d'une colonne de champ.")
         parts = repartirColonnes(indices, indiceCible, mode)
         if parts is None:
-            return "Laissez au moins une colonne défilante."
+            return traduire("Laissez au moins une colonne défilante.")
         figees, _defilantes = parts
         separateur = self._trouverSeparateur()
         if separateur is None:
-            return "Cette table ne permet pas de figer des colonnes."
+            return traduire("Cette table ne permet pas de figer des colonnes.")
         self.modeCourant = mode
         self.champCourant = nomChampColonne(self.vue, indiceCible)
         self.indiceCourant = indiceCible
