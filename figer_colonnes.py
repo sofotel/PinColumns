@@ -834,7 +834,9 @@ class FigementColonnes:
             self.largeurs[indice] = nouvelle
             if not estSupprime(self.vue):
                 self._modifierVueSansMemoire(
-                    lambda i=indice, l=nouvelle: self.vue.setColumnWidth(i, l)
+                    lambda indiceColonne=indice, largeur=nouvelle: self.vue.setColumnWidth(
+                        indiceColonne, largeur
+                    )
                 )
             self._ajusterLargeur()
         finally:

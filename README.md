@@ -2,6 +2,10 @@
 
 Plugin QGIS pour figer des colonnes dans une table attributaire. Les colonnes choisies restent visibles pendant le défilement horizontal.
 
+## Usage
+
+Open an attribute table and click a column header. The toolbar button freezes that column and the ones before it. The menu can freeze only that column, or that column and the ones after it. Closing the table keeps the choice. Unfreeze columns clears it. Save the project to keep the freeze.
+
 ## Utilisation
 
 1. Ouvrir la table attributaire.

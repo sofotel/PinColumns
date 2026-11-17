@@ -1,5 +1,9 @@
 # Changelog - PinColumns
 
+## 0.3.1 - 2026-11-17
+
+Le nom de variable `l`, refusé par le contrôle de qualité, est remplacé par `largeur`.
+
 ## 0.3 - 2026-11-17
 
 Les lectures qui échouent sont écrites dans le journal QGIS. Elles ne sont plus ignorées en silence.

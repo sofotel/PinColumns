@@ -4,17 +4,19 @@
 name=PinColumns
 qgisMinimumVersion=3.16
 icon=icon.png
-description=Fige des colonnes dans les tables attributaires
-version=0.3
+description=Freeze columns in attribute tables
+version=0.3.1
 author=sofotel
 email=contact@sofotel.fr
 repository=https://github.com/sofotel/PinColumns
 tracker=https://github.com/sofotel/PinColumns/issues
 homepage=https://github.com/sofotel/PinColumns
 
-about=Ajoute dans la table attributaire un bouton pour garder des colonnes visibles pendant le defilement horizontal. Le choix est memorise sur la couche dans le projet.
+about=Open an attribute table and click a column header. The toolbar button freezes that column and the ones before it. The menu can freeze only that column, or that column and the ones after it. Closing the table keeps the choice. Unfreeze columns clears it. Save the project to keep the freeze.
 
-changelog=0.3 - 2026-11-17
+changelog=0.3.1 - 2026-11-17
+    Le nom de variable ambigu l est remplace.
+    0.3 - 2026-11-17
     Les lectures ratees sont notees dans le journal au lieu d'etre ignorees.
     0.2 - 2026-11-16
     Bouton a fleche, trois modes, et memoire du figement sur la couche.
