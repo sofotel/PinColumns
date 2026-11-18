@@ -4,17 +4,33 @@
 import os
 
 from qgis.PyQt import sip
-from qgis.PyQt.QtCore import QEvent, QObject, QTimer, Qt
-from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtCore import (
+    QCoreApplication,
+    QEvent,
+    QItemSelectionModel,
+    QMetaObject,
+    QObject,
+    QPoint,
+    QTimer,
+    Qt,
+)
+from qgis.PyQt.QtGui import QIcon, QKeySequence
 from qgis.PyQt.QtWidgets import (
     QAction,
     QActionGroup,
     QApplication,
+    QCheckBox,
+    QDialog,
+    QDialogButtonBox,
+    QGridLayout,
+    QGroupBox,
+    QInputDialog,
     QMenu,
     QToolBar,
     QToolButton,
 )
-from qgis.core import Qgis
+from qgis.core import QgsExpressionContext, QgsExpressionContextUtils, Qgis
+from qgis.gui import QgsDualView, QgsExpressionBuilderWidget
 
 from .figer_colonnes import (
     MODE_APRES,
@@ -27,6 +43,7 @@ from .figer_colonnes import (
     estSupprime,
     indiceColonneChamp,
     lirePreference,
+    listerColonnesVisibles,
     reparerLargeursNulles,
     tracerErreur,
     tracerRepli,
@@ -40,7 +57,7 @@ def _libelles() -> dict:
     return {
         MODE_AVANT: traduire("Figer cette colonne et celles d'avant"),
         MODE_SEULE: traduire("Figer seulement cette colonne"),
-        MODE_APRES: traduire("Figer les colonnes d'après"),
+        MODE_APRES: traduire("Figer cette colonne et celles d'après"),
     }
 
 
@@ -56,6 +73,11 @@ def _infos() -> dict:
             "Cette colonne et celles d'après restent à droite. Les précédentes défilent."
         ),
     }
+
+
+def _texteQgis(contexte: str, source: str) -> str:
+    """Reprend le libelle de QGIS, dans la langue de l'interface."""
+    return QCoreApplication.translate(contexte, source)
 
 
 def _nomClasse(obj) -> str:
@@ -153,6 +175,8 @@ class SurveillantTables(QObject):
 
     def eventFilter(self, obj, event):
         try:
+            if event.type() == QEvent.ContextMenu and self._gererClicDroitFigee(obj, event):
+                return True
             if event.type() == QEvent.Show and _estDialogueTable(obj):
                 QTimer.singleShot(0, lambda o=obj: self.installer(o))
             elif event.type() == QEvent.Show and _nomClasse(obj) in (
@@ -343,7 +367,469 @@ class SurveillantTables(QObject):
         entete = vue.horizontalHeader()
         if entete is not None:
             entete.sectionClicked.connect(lambda indice, v=vue: self._memoriser(v, indice))
+            # Apres le slot de QGIS, qui cree le menu puis appelle popup().
+            entete.customContextMenuRequested.connect(
+                lambda pos, v=vue: self._completerMenuEntete(v, pos),
+                Qt.QueuedConnection,
+            )
         vue.clicked.connect(lambda index, v=vue: self._memoriser(v, index.column()))
+
+    def _completerMenuEntete(self, vue, point: QPoint) -> None:
+        """Ajoute le figement au menu contextuel de l'en-tete, apres celui de QGIS."""
+        try:
+            if self.enRestauration or estSupprime(vue):
+                return
+            dialogue = self._dialoguePourVue(vue)
+            if dialogue is None or estSupprime(dialogue):
+                return
+            entete = vue.horizontalHeader()
+            if entete is None or estSupprime(entete):
+                return
+            indice = entete.logicalIndexAt(point)
+            if indice < 0:
+                return
+            dual = self._trouverDualView(vue)
+            if dual is None:
+                tracerRepli("Menu entete", RuntimeError("QgsDualView introuvable."))
+                return
+            menuQgis = self._menuEnteteQgis(dual)
+            if menuQgis is None:
+                tracerRepli("Menu entete", RuntimeError("Menu horizontal introuvable."))
+                return
+            etat = self.etats.get(id(dialogue))
+            self._poserSousMenuFigement(menuQgis, etat, vue, indice)
+        except Exception as erreur:
+            tracerErreur("Menu entete des colonnes", erreur)
+
+    def _poserSousMenuFigement(self, menuParent, etat, vue, indice: int) -> None:
+        """Ajoute le sous-menu de figement. La vue est la table principale."""
+        if estSupprime(menuParent) or etat is None or etat.figement is None:
+            return
+        dialogue = etat.dialogue
+        if estSupprime(dialogue) or estSupprime(vue):
+            return
+        if menuParent.findChild(QObject, "pincolumnsMenuEntete") is not None:
+            return
+        menuParent.addSeparator()
+        sousMenu = QMenu(traduire("Figer les colonnes"), menuParent)
+        sousMenu.setObjectName("pincolumnsMenuEntete")
+        groupe = QActionGroup(sousMenu)
+        groupe.setExclusive(True)
+        libelles = _libelles()
+        infos = _infos()
+        colMemorisee = vue.property("pincolumnsColonne")
+        figementActif = etat.figement.estActif()
+        modeCourant = dialogue.property("pincolumnsMode") or MODE_AVANT
+        cocher = False
+        if figementActif and colMemorisee is not None:
+            try:
+                cocher = int(colMemorisee) == indice
+            except (TypeError, ValueError):
+                cocher = False
+        for mode in (MODE_AVANT, MODE_SEULE, MODE_APRES):
+            action = QAction(libelles[mode], sousMenu)
+            action.setCheckable(True)
+            action.setToolTip(infos[mode])
+            action.setData(mode)
+            if cocher and mode == modeCourant:
+                action.setChecked(True)
+            groupe.addAction(action)
+            sousMenu.addAction(action)
+            action.triggered.connect(
+                lambda coche, m=mode, d=dialogue, v=vue, i=indice: self._figerDepuisEntete(
+                    d, v, i, m, coche
+                )
+            )
+        sousMenu.addSeparator()
+        actionLiberer = QAction(traduire("Libérer les colonnes"), sousMenu)
+        actionLiberer.setEnabled(figementActif)
+        actionLiberer.triggered.connect(lambda _coche=False, d=dialogue: self._liberer(d))
+        sousMenu.addAction(actionLiberer)
+        menuParent.addMenu(sousMenu)
+
+    def _figerDepuisEntete(self, dialogue, vue, indice, mode: str, coche: bool) -> None:
+        if not coche:
+            return
+        self._memoriser(vue, indice)
+        self._choisirMode(dialogue, mode, True)
+
+    def _brancherMenusFiges(self, etat) -> None:
+        """Le clic droit de la vue figee n'existe pas : QGIS ne connait que la table principale."""
+        figement = etat.figement if etat is not None else None
+        if figement is None or estSupprime(figement.vueFigee):
+            return
+        vueFigee = figement.vueFigee
+        if vueFigee.property("pincolumnsMenus"):
+            return
+        vueFigee.setProperty("pincolumnsMenus", True)
+        try:
+            viewport = vueFigee.viewport()
+            if viewport is not None:
+                viewport.installEventFilter(self)
+            entete = vueFigee.horizontalHeader()
+            if entete is not None:
+                entete.setContextMenuPolicy(Qt.CustomContextMenu)
+                entete.customContextMenuRequested.connect(
+                    lambda pos, e=etat, v=vueFigee: self._menuEnteteFigee(e, v, pos)
+                )
+        except Exception as erreur:
+            tracerErreur("Menus de la vue figee", erreur)
+
+    def _gererClicDroitFigee(self, obj, event) -> bool:
+        if obj is None or estSupprime(obj):
+            return False
+        vueFigee = obj.parent()
+        if estSupprime(vueFigee) or _nomClasse(vueFigee) == "":
+            return False
+        try:
+            if vueFigee.objectName() != "pincolumnsVueFigee":
+                return False
+        except Exception:
+            return False
+        self._menuCelluleFigee(vueFigee, event.pos(), event.globalPos())
+        return True
+
+    def _menuCelluleFigee(self, vueFigee, pos, posGlobale) -> None:
+        """Meme menu de cellule que la table QGIS, pour la ligne et la colonne cliquees."""
+        try:
+            if estSupprime(vueFigee):
+                return
+            index = vueFigee.indexAt(pos)
+            if index is None or not index.isValid():
+                return
+            etat = self._etatPourVueFigee(vueFigee)
+            if etat is None or etat.figement is None or estSupprime(etat.figement.vue):
+                return
+            vue = etat.figement.vue
+            selection = vue.selectionModel()
+            if selection is not None:
+                selection.setCurrentIndex(index, QItemSelectionModel.NoUpdate)
+            menu = QMenu(vueFigee)
+            actionTout = menu.addAction(_texteQgis("QgsAttributeTableView", "Select All"))
+            actionTout.setShortcut(QKeySequence.SelectAll)
+            actionTout.triggered.connect(lambda _coche=False, v=vue: v.selectAll())
+            maitre = index
+            modele = vue.model()
+            if modele is not None and hasattr(modele, "mapToMaster"):
+                try:
+                    maitre = modele.mapToMaster(index)
+                except Exception as erreur:
+                    tracerRepli("Index maitre de la cellule", erreur)
+            if hasattr(vue, "willShowContextMenu"):
+                vue.willShowContextMenu.emit(menu, maitre)
+            if menu.actions():
+                menu.popup(posGlobale)
+        except Exception as erreur:
+            tracerErreur("Menu cellule de la vue figee", erreur)
+
+    def _menuEnteteFigee(self, etat, vueFigee, point: QPoint) -> None:
+        """Meme menu d'en-tete que QGIS, plus le figement, sur la colonne figee."""
+        try:
+            if self.enRestauration or estSupprime(vueFigee) or etat is None or etat.figement is None:
+                return
+            vue = etat.figement.vue
+            if estSupprime(vue):
+                return
+            entete = vueFigee.horizontalHeader()
+            if entete is None or estSupprime(entete):
+                return
+            indice = entete.logicalIndexAt(point)
+            if indice < 0:
+                return
+            menu = QMenu(vueFigee)
+            self._ajouterActionsEntete(menu, etat, indice)
+            self._poserSousMenuFigement(menu, etat, vue, indice)
+            if menu.actions():
+                menu.popup(entete.mapToGlobal(point))
+        except Exception as erreur:
+            tracerErreur("Menu entete de la vue figee", erreur)
+
+    def _ajouterActionsEntete(self, menu, etat, indice: int) -> None:
+        dual = self._dualPour(etat.figement.vue)
+        if dual is None:
+            return
+        actions = (
+            ("&Hide Column", lambda _coche=False, i=indice, e=etat: self._masquerColonne(e, i)),
+            ("&Set Width…", lambda _coche=False, i=indice, e=etat: self._demanderLargeur(e, i, False)),
+            (
+                "&Set All Column Widths…",
+                lambda _coche=False, i=indice, e=etat: self._demanderLargeur(e, i, True),
+            ),
+            ("&Autosize", lambda _coche=False, i=indice, e=etat: self._ajusterColonnes(e, i, False)),
+            (
+                "&Autosize All Columns",
+                lambda _coche=False, i=indice, e=etat: self._ajusterColonnes(e, i, True),
+            ),
+        )
+        for source, slot in actions:
+            action = QAction(_texteQgis("QgsDualView", source), menu)
+            action.triggered.connect(slot)
+            menu.addAction(action)
+        menu.addSeparator()
+        organiser = QAction(_texteQgis("QgsDualView", "&Organize Columns…"), menu)
+        organiser.triggered.connect(lambda _coche=False, d=dual: self._organiserColonnes(d))
+        menu.addAction(organiser)
+        trier = QAction(_texteQgis("QgsDualView", "&Sort…"), menu)
+        trier.triggered.connect(lambda _coche=False, d=dual, e=etat: self._ouvrirTri(e, d))
+        menu.addAction(trier)
+
+    def _etatPourVueFigee(self, vueFigee):
+        for etat in self.etats.values():
+            figement = etat.figement
+            if figement is None or estSupprime(figement.vueFigee):
+                continue
+            if figement.vueFigee is vueFigee:
+                return etat
+        return None
+
+    def _dualPour(self, vue):
+        parent = self._trouverDualView(vue)
+        if parent is None:
+            return None
+        try:
+            dual = sip.cast(parent, QgsDualView)
+        except Exception as erreur:
+            tracerRepli("Lecture du dual view", erreur)
+            return None
+        return dual
+
+    def _masquerColonne(self, etat, indice: int) -> None:
+        try:
+            dual = self._dualPour(etat.figement.vue)
+            if dual is None:
+                return
+            config = dual.attributeTableConfig()
+            source = config.mapVisibleColumnToIndex(int(indice))
+            if source < 0:
+                return
+            config.setColumnHidden(source, True)
+            dual.setAttributeTableConfig(config)
+        except Exception as erreur:
+            tracerErreur("Masquage d'une colonne figee", erreur)
+
+    def _demanderLargeur(self, etat, indice: int, toutes: bool) -> None:
+        try:
+            figement = etat.figement
+            if figement is None or estSupprime(figement.vue):
+                return
+            actuelle = self._largeurVisible(figement, indice)
+            if toutes:
+                titre = _texteQgis("QgsDualView", "Set Column Width")
+                minimum = 1
+            else:
+                titre = _texteQgis("QgsDualView", "Set column width")
+                minimum = 0
+            valeur, ok = QInputDialog.getInt(
+                figement.vue,
+                titre,
+                _texteQgis("QgsDualView", "Enter column width"),
+                max(actuelle, minimum),
+                minimum,
+                1000,
+                10,
+            )
+            if not ok:
+                return
+            self._ecrireLargeurs(etat, valeur, None if toutes else indice)
+        except Exception as erreur:
+            tracerErreur("Largeur d'une colonne figee", erreur)
+
+    def _ajusterColonnes(self, etat, indice: int, toutes: bool) -> None:
+        try:
+            figement = etat.figement
+            if figement is None or estSupprime(figement.vue):
+                return
+            if toutes:
+                self._ajusterAuContenu(figement.vue, listerColonnesVisibles(figement.vue))
+                if not estSupprime(figement.vueFigee):
+                    self._ajusterAuContenu(figement.vueFigee, list(figement.colonnesFigees))
+                self._ecrireLargeurs(etat, None, None)
+                return
+            vue = figement.vue
+            if indice in figement.colonnesFigees and not estSupprime(figement.vueFigee):
+                vue = figement.vueFigee
+            self._ajusterAuContenu(vue, [indice])
+            self._ecrireLargeurs(etat, None, indice)
+        except Exception as erreur:
+            tracerErreur("Ajustement d'une colonne figee", erreur)
+
+    def _ajusterAuContenu(self, vue, indices) -> None:
+        if estSupprime(vue):
+            return
+        entete = vue.horizontalHeader()
+        if entete is not None:
+            entete.blockSignals(True)
+        try:
+            for indice in indices:
+                vue.resizeColumnToContents(int(indice))
+        finally:
+            if entete is not None and not estSupprime(entete):
+                entete.blockSignals(False)
+
+    def _ecrireLargeurs(self, etat, valeur, indiceSeul) -> None:
+        figement = etat.figement
+        dual = self._dualPour(figement.vue)
+        if dual is None or estSupprime(figement.vue):
+            return
+        config = dual.attributeTableConfig()
+        if valeur is not None and indiceSeul is None:
+            nombre = figement.vue.model().columnCount() if figement.vue.model() else 0
+            for colonne in range(nombre):
+                config.setColumnWidth(colonne, int(valeur))
+        else:
+            entete = figement.vue.horizontalHeader()
+            cibles = [indiceSeul] if indiceSeul is not None else [
+                entete.logicalIndex(visuel) for visuel in range(entete.count())
+            ]
+            for logique in cibles:
+                if logique < 0:
+                    continue
+                largeur = int(valeur) if valeur is not None else self._largeurVisible(figement, logique)
+                if largeur <= 0:
+                    continue
+                source = config.mapVisibleColumnToIndex(int(logique))
+                if source < 0:
+                    continue
+                config.setColumnWidth(source, largeur)
+        figement.occupation = True
+        try:
+            dual.setAttributeTableConfig(config)
+        finally:
+            figement.occupation = False
+        self._reporterLargeurs(figement, valeur, indiceSeul)
+
+    def _reporterLargeurs(self, figement, valeur, indiceSeul) -> None:
+        if estSupprime(figement.vueFigee) or estSupprime(figement.vue):
+            return
+        for indice in figement.colonnesFigees:
+            if valeur is not None and (indiceSeul is None or indiceSeul == indice):
+                largeur = int(valeur)
+            else:
+                largeur = self._largeurVisible(figement, indice)
+            if largeur > 0 and figement.vueFigee.columnWidth(indice) != largeur:
+                figement.vueFigee.setColumnWidth(indice, largeur)
+        try:
+            figement._ajusterLargeur()
+        except Exception as erreur:
+            tracerRepli("Largeur de la vue figee", erreur)
+
+    def _largeurVisible(self, figement, logique: int) -> int:
+        if (
+            logique in figement.colonnesFigees
+            and not estSupprime(figement.vueFigee)
+        ):
+            return figement.vueFigee.columnWidth(logique)
+        if estSupprime(figement.vue):
+            return 0
+        return figement.vue.columnWidth(logique)
+
+    def _organiserColonnes(self, dual) -> None:
+        try:
+            QMetaObject.invokeMethod(dual, "organizeColumns", Qt.DirectConnection)
+        except Exception as erreur:
+            tracerErreur("Organisation des colonnes", erreur)
+
+    def _ouvrirTri(self, etat, dual) -> None:
+        """Reprend le dialogue de tri de QGIS, qui n'est pas exposé au Python."""
+        try:
+            if dual is None or dual.masterModel() is None:
+                return
+            couche = dual.masterModel().layer()
+            if couche is None:
+                return
+            dialogue = QDialog(etat.dialogue)
+            dialogue.setWindowTitle(
+                _texteQgis("QgsDualView", "Configure Attribute Table Sort Order")
+            )
+            boutons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+            disposition = QGridLayout(dialogue)
+            boutons.accepted.connect(dialogue.accept)
+            boutons.rejected.connect(dialogue.reject)
+            groupe = QGroupBox(
+                _texteQgis("QgsDualView", "Defined sort order in attribute table")
+            )
+            groupe.setCheckable(True)
+            expression = dual.sortExpression() or ""
+            groupe.setChecked(bool(expression))
+            disposition.addWidget(groupe)
+            grille = QGridLayout(groupe)
+            constructeur = QgsExpressionBuilderWidget(groupe)
+            contexte = QgsExpressionContext(
+                QgsExpressionContextUtils.globalProjectLayerScopes(couche)
+            )
+            constructeur.initWithLayer(couche, contexte, "generic")
+            constructeur.setExpressionText(expression or couche.displayExpression())
+            grille.addWidget(constructeur)
+            ascendant = QCheckBox(_texteQgis("QgsDualView", "Sort ascending"))
+            config = dual.attributeTableConfig()
+            ascendant.setChecked(config.sortOrder() == Qt.AscendingOrder)
+            grille.addWidget(ascendant)
+            disposition.addWidget(boutons)
+            if dialogue.exec_() != QDialog.Accepted:
+                return
+            ordre = Qt.AscendingOrder if ascendant.isChecked() else Qt.DescendingOrder
+            if groupe.isChecked():
+                texte = constructeur.expressionText()
+                dual.setSortExpression(texte, ordre)
+                config.setSortExpression(texte)
+                config.setSortOrder(ordre)
+            else:
+                dual.setSortExpression("", ordre)
+                config.setSortExpression("")
+            figement = etat.figement
+            if figement is not None:
+                figement.occupation = True
+            try:
+                dual.setAttributeTableConfig(config)
+            finally:
+                if figement is not None:
+                    figement.occupation = False
+        except Exception as erreur:
+            tracerErreur("Tri de la table", erreur)
+
+    def _dialoguePourVue(self, vue):
+        for etat in self.etats.values():
+            figement = etat.figement
+            if figement is None:
+                continue
+            if estSupprime(figement.vue):
+                continue
+            if figement.vue is vue:
+                return etat.dialogue
+        for etat in self.etats.values():
+            dialogue = etat.dialogue
+            if estSupprime(dialogue):
+                continue
+            candidate = self._trouverVue(dialogue)
+            if candidate is vue:
+                return dialogue
+        return None
+
+    def _trouverDualView(self, vue):
+        parent = vue.parent()
+        while parent is not None and not estSupprime(parent):
+            if _nomClasse(parent) == "QgsDualView":
+                return parent
+            parent = parent.parent()
+        return None
+
+    def _menuEnteteQgis(self, dual):
+        """Menu d'en-tete que QGIS vient de creer, enfant direct du dual view."""
+        try:
+            dernier = None
+            for enfant in dual.children():
+                if estSupprime(enfant) or _nomClasse(enfant) != "QMenu":
+                    continue
+                menu = sip.cast(enfant, QMenu)
+                if menu is None:
+                    continue
+                dernier = menu
+                if menu.isVisible():
+                    return menu
+            return dernier
+        except Exception as erreur:
+            tracerRepli("Menu entete", erreur)
+        return None
 
     def _memoriser(self, vue, indice) -> None:
         if estSupprime(vue):
@@ -427,9 +913,10 @@ class SurveillantTables(QObject):
             etat.bouton.setToolTip(court)
 
     def _marquerActif(self, etat, actif: bool) -> None:
-        if estSupprime(etat.actionLiberer):
-            return
-        etat.actionLiberer.setEnabled(bool(actif))
+        if not estSupprime(etat.actionLiberer):
+            etat.actionLiberer.setEnabled(bool(actif))
+        if actif:
+            self._brancherMenusFiges(etat)
 
     def _trouverBarre(self, dialogue):
         trouvees = []

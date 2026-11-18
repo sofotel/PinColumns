@@ -16,8 +16,8 @@
         <translation>Fijar solo esta columna</translation>
     </message>
     <message>
-        <source>Figer les colonnes d'après</source>
-        <translation>Fijar las columnas siguientes</translation>
+        <source>Figer cette colonne et celles d'après</source>
+        <translation>Fijar esta columna y las siguientes</translation>
     </message>
     <message>
         <source>Libérer les colonnes</source>

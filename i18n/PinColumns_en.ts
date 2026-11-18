@@ -16,8 +16,8 @@
         <translation>Freeze only this column</translation>
     </message>
     <message>
-        <source>Figer les colonnes d'après</source>
-        <translation>Freeze the columns after this one</translation>
+        <source>Figer cette colonne et celles d'après</source>
+        <translation>Freeze this column and the ones after it</translation>
     </message>
     <message>
         <source>Libérer les colonnes</source>

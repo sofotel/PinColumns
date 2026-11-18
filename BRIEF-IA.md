@@ -16,7 +16,7 @@ Les textes visibles passent par `traduire`. Le français est la source. Anglais 
 
 - `avant` : la colonne choisie et celles d'avant, à gauche. Mode par défaut.
 - `seule` : seulement la colonne choisie, à gauche.
-- `apres` : la colonne choisie et celles d'après, à droite. Libellé du menu : « Figer les colonnes d'après ».
+- `apres` : la colonne choisie et celles d'après, à droite. Libellé du menu : « Figer cette colonne et celles d'après ».
 
 La colonne repère est le dernier en-tête cliqué, sinon la cellule active. La colonne d'actions n'est pas figée. Les numéros de ligne restent sur la vue native : l'en-tête vertical de la vue figée reste caché.
 

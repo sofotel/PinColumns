@@ -17,7 +17,7 @@ Modes :
 
 - **Figer cette colonne et celles d'avant** : elles restent à gauche, les colonnes de droite défilent.
 - **Figer seulement cette colonne** : elle reste à gauche, les autres défilent.
-- **Figer les colonnes d'après** : cette colonne et celles d'après restent à droite, les précédentes défilent.
+- **Figer cette colonne et celles d'après** : cette colonne et celles d'après restent à droite, les précédentes défilent.
 
 La colonne d'actions n'est pas figée. Les numéros de ligne restent ceux de la table QGIS. Il faut laisser au moins une colonne qui défile.
 
