@@ -707,6 +707,7 @@ class FigementColonnes:
         selection = self.vue.selectionModel()
         if selection is not None:
             self._lier(selection.selectionChanged, self._rafraichir)
+            self._suivreRepeint(selection)
 
     def _lier(self, signal, slot) -> None:
         signal.connect(slot)
@@ -909,6 +910,25 @@ class FigementColonnes:
             hauteur = self.vue.rowHeight(ligne)
             if hauteur > 0 and self.vueFigee.rowHeight(ligne) != hauteur:
                 self.vueFigee.setRowHeight(ligne, hauteur)
+
+    def _suivreRepeint(self, selection) -> None:
+        """QGIS repeint la table via requestRepaint, pas via selectionChanged.
+
+        Le clic sur le numero de ligne passe par ce signal. Sans lui, la
+        vue figee garde l'ancienne couleur jusqu'au prochain clic.
+        """
+        try:
+            modele = sip.cast(selection, QgsFeatureSelectionModel)
+        except Exception as erreur:
+            tracerRepli("Modele de selection", erreur)
+            return
+        if modele is None:
+            return
+        try:
+            self._lier(modele.requestRepaint["QModelIndexList"], self._rafraichir)
+            self._lier(modele.requestRepaint[()], self._rafraichir)
+        except Exception as erreur:
+            tracerErreur("Suivi du repeint", erreur)
 
     def _rafraichir(self, *_args) -> None:
         if self.vueFigee is not None and not estSupprime(self.vueFigee):

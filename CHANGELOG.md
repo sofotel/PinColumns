@@ -1,5 +1,13 @@
 # Changelog - PinColumns
 
+## 0.4 - 2026-11-18
+
+Le clic droit sur l'en-tête d'une colonne fige cette colonne. Le libellé du troisième mode est « Figer cette colonne et celles d'après ».
+
+La partie figée a le même clic droit que la table : en-tête (masquer, largeur, ajuster, organiser, trier, figement) et cellules (sélection, copie, zoom, formulaire).
+
+Cliquer un numéro de ligne met la surbrillance à jour des deux côtés. La partie figée ne reste plus en retard jusqu'au clic suivant.
+
 ## 0.3.1 - 2026-11-17
 
 Le nom de variable `l`, refusé par le contrôle de qualité, est remplacé par `largeur`.

@@ -1,12 +1,12 @@
 # BRIEF-IA - PinColumns
 
-**MAJ :** 2026-11-16
+**MAJ :** 2026-11-18
 
 ## But
 
 Figer des colonnes dans la table attributaire de QGIS.
 
-Le bouton est dans la barre de la table, pas dans une fenêtre du plugin. Un clic exécute le mode actif. La flèche ouvre les trois modes et « Libérer les colonnes ».
+Le bouton est dans la barre de la table, pas dans une fenêtre du plugin. Un clic exécute le mode actif. La flèche ouvre les trois modes et « Libérer les colonnes ». Le clic droit sur un en-tête de la table, ou de la partie figée, propose le même sous-menu pour la colonne sous le curseur.
 
 L'infobulle du bouton principal reste « Figer les colonnes ». Ne pas y remettre le texte long du mode. Les infobulles longues sont sur les entrées du menu.
 
@@ -18,7 +18,7 @@ Les textes visibles passent par `traduire`. Le français est la source. Anglais 
 - `seule` : seulement la colonne choisie, à gauche.
 - `apres` : la colonne choisie et celles d'après, à droite. Libellé du menu : « Figer cette colonne et celles d'après ».
 
-La colonne repère est le dernier en-tête cliqué, sinon la cellule active. La colonne d'actions n'est pas figée. Les numéros de ligne restent sur la vue native : l'en-tête vertical de la vue figée reste caché.
+La colonne repère est le dernier en-tête cliqué, sinon la cellule active. Le clic droit d'en-tête mémorise la colonne sous le curseur avant d'appliquer le mode. La colonne d'actions n'est pas figée. Les numéros de ligne restent sur la vue native : l'en-tête vertical de la vue figée reste caché. La surbrillance de sélection doit apparaître en même temps sur les deux vues.
 
 ## Projet
 
@@ -36,7 +36,9 @@ Les colonnes figées sont masquées sur la vue qui défile, et l'inverse sur la 
 
 La restauration se fait une seule fois, par `QTimer.singleShot(0)`. Un `modelReset` repose le figement si une préférence existe. Ne pas le reposer après une libération utilisateur.
 
-La couche se lit via `sip.cast` vers `QgsAttributeTableFilterModel`, puis `layer()`. La sélection figée exige un `QgsFeatureSelectionModel`.
+La couche se lit via `sip.cast` vers `QgsAttributeTableFilterModel`, puis `layer()`. La sélection figée exige un `QgsFeatureSelectionModel`. QGIS repeint la ligne via `requestRepaint` (`QModelIndexList` et sans argument), pas via `selectionChanged`. La vue figée doit rester branchée sur ces deux signaux, sinon le clic sur un numéro de ligne ne la met à jour qu'au clic suivant.
+
+Le clic droit de la partie figée n'existe pas dans QGIS. L'en-tête est un menu reconstruit (masquer, largeur, ajuster, organiser, trier, puis figement). Les cellules passent par `willShowContextMenu` de la table principale. Ne pas réutiliser les `QAction` du bouton de barre : le menu contextuel est détruit par QGIS à chaque ouverture.
 
 Les erreurs passent par `tracerErreur` (journal QGIS « PinColumns »). Pas de `print`, pas de fichier journal.
 
