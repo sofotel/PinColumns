@@ -33,3 +33,6 @@ Le choix est enregistré sur la couche, dans le projet : le mode et le nom du ch
 QGIS marque le projet comme modifié. Le figement survit à la fermeture de QGIS seulement si le projet est enregistré.
 
 Sans le plugin, la table défile normalement. QGIS ignore ces propriétés, et les colonnes ne sont pas masquées.
+
+## Visuel
+<img width="1375" height="929" alt="image" src="https://github.com/user-attachments/assets/2583a24b-7a3f-417f-afba-2c60fc295c0b" />
